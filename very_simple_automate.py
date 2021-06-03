@@ -9,6 +9,8 @@ class Transition():
 	
 	def is_epsilon(self):
 		return self.etiquette == mot_vide
+
+        
 class AFN():
 	def __init__(self, alpha="ab", etats=[0,1], transitions=[(0,'b',0), (0,'a',1), (1,'a',0), (1,'b',1)], init = 0, final = [0]):
 		self.alphabet = set(alpha)

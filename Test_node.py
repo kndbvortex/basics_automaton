@@ -1,3 +1,5 @@
+mot_vide = "ε"
+
 class node:
     def __init__(self, n) -> None:
         self.info = n
