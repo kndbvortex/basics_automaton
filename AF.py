@@ -1,5 +1,7 @@
-mot_vide = "ε"
+import copy
 
+
+mot_vide = "ε"
 
 class Transition():
 	''' Classe représentant partiellement une transition(étiquette et nom de la destination) '''
@@ -16,25 +18,31 @@ class Transition():
 
 
 class Etat():
-	''' Représente un etat (Nom et transitions sortantes'''
+	'''Représente un etat (Nom et transitions sortantes'''
 	def __init__(self, nom, l=None):
 		self.nom = nom
 		if l == None:
 			self.transitions = []
 		else:
-			self.transitions = l
+			self.transitions = list(l)
 
 	def __str__(self) -> str:
-		s = ''
-		for t in self.transitions:
-			s += f'{self.nom} --- {t.__str__()}\n'
-		return s
+		if self.transitions != []:
+			s = ''
+			for t in self.transitions:
+				s += f'{self.nom} --- {t.__str__()}\n'
+			return s
+		else:
+			return f'{self.nom} ---'
 
 	def __repr__(self) -> str:
-		s = ''
-		for t in self.transitions:
-			s += f'{self.nom} --- {t.__str__()}\n'
-		return s
+		if self.transitions != []:
+			s = ''
+			for t in self.transitions:
+				s += f'{self.nom} --- {t.__str__()}\n'
+			return s
+		else:
+			return f'{self.nom} ---'
 
 	#ajouter une nouvelle transition sortante à cet état
 	def add_transition(self, etiquette, etat_dest):
@@ -47,28 +55,34 @@ class Etat():
 		for transition in self.transitions:
 			if transition.etiquette == key:
 				b.append(transition.etat_dest) 
-		if len(b) == 1:
-			return b[0]   
-		return b
+		n = len(b)
+		if n == 1:
+			return b[0]
+		elif n == 0:
+			return None   
+		else:
+			return b
 
 class Automate():
 	'''
-	Représentation d'un automate:
+		Représentation d'un automate:
 	Il est caractérisé par un alphabet, un ensemble d'état, ceux finaux et initiaux
 	et d'un ensemble de valeur sous la forme d'une liste de tuple (i, j, k)
 	avec i l'arigine , j l'étiquette, k l'etat de destination
-	
 	'''
 	def __init__(self, alphabet, initial, etats, final, transitions) -> None:
 		self.alphabet = set(alphabet)
 		self.etats = {}
-		self.etats_init = initial
-		self.etats_final = final
+		self.etats_init = list(initial)
+		self.etats_final = list(final)
+		self.spontanee = False
 		
 		for nom_etat in etats:
 			self.add_etat(nom_etat)
 		for transition in transitions:
 			self.etats[transition[0]].add_transition(transition[1], transition[2])
+			if transition[1] == mot_vide:
+				self.spontanee = True
 
 	#Ajoute un état dans l'automate	
 	def add_etat(self, nom):
@@ -83,27 +97,71 @@ class Automate():
 		while i < n :
 			q = self.etats[q][mot[i]]
 			i += 1
-			if q == []:
+			if q == [] or q == None:
 				return False
 		for etat in self.etats_final:
 			if etat == q:
 				return True
 		return False
 
+	def est_deterministe(self) -> bool:
+		if len(self.etats_init) != 1 or self.spontanee:
+			return False
+		for etat in self.etats:
+			for symbole in self.alphabet:
+				if type(self.etats[etat][symbole]) == type([]):
+					return False
+		return True
+
+	def est_complet(self):
+		if self.est_deterministe():
+			for etat in self.etats:
+				for symbol in self.alphabet:
+					if self.etats[etat][symbol] == None:
+						return False
+			return True
+		else:
+			return False
+
 	def __str__(self) -> str:
 		s = ''
 		for etat in self.etats:
 			s += self.etats[etat].__str__()
 		return s
+
+	#surcharge de l'opérateur d'indexage afin de pouvoir obtenir l'etat de nom 'key'
+	def __getitem__(self, key):
+		return self.etats[key]
+
+def rendre_complet(A):
+	B = copy.deepcopy(A)
+	if A.est_deterministe():
+		if not B.est_complet():
+			B.add_etat("puit")
+			for symbol in A.alphabet:
+				B["puit"].add_transition(symbol,"puit")
+			for etat in B.etats:
+				for symbol in A.alphabet:
+					if B[etat][symbol] == None:
+						B[etat].add_transition(symbol, 'puit')
+		return B
 		
 def main():
    alpha="ab"
    etats=[0,1]
-   transitions=[(0,'a',1), (0,'b',0), (1,'a',0), (1,'b',1)]
+   transitions=[(0,'b',0), (1,'a',0), (1,'b',1)]
    init = [0]
    final = [0]
    A = Automate(alpha, init, etats,final, transitions)
-   print(A.reconnait("baa"))
+   A.add_etat(3)
+   '''print(A[0])
+   print(A.est_deterministe())
+   print(A)
+   B = copy.deepcopy(A)
+   A.add_etat(3)
+   print(B)
+   print(A)'''
+   print(rendre_complet(A))
 
 
 if __name__ == '__main__':

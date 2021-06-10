@@ -1,3 +1,5 @@
+mot_vide = "ε"
+
 class Transition():
 	def __init__(self, origine, etiquette, destination) -> None:
 		self.origine = origine
@@ -5,7 +7,8 @@ class Transition():
 		self.etat_dest = destination
 
 	def __str__(self) -> str:
-		return f'{self.etiquette}--->{self.etat_dest}'
+		return f'{self.origine}-----{self.etiquette}--->{self.etat_dest}'
+
 	
 	def is_epsilon(self):
 		return self.etiquette == mot_vide
@@ -17,7 +20,7 @@ class AFN():
 		self.etats = etats
 		self.etat_initial = init
 		self.etats_finaux = final
-		self.transitions = [transition(i,j,k) for i,j,k in transitions]
+		self.transitions = [Transition(i,j,k) for i,j,k in transitions]
 
 	def delta(self, q, a):
 		for transition in self.transitions:
@@ -37,3 +40,6 @@ class AFN():
 			if etat == q:
 				return True
 		return False
+
+t = Transition(1, 'a', 3)
+print(t)
