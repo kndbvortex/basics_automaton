@@ -33,7 +33,7 @@ class Etat():
                 s += f'{self.nom} --- {t.__str__()}\n'
             return s
         else:
-            return f'{self.nom} ---'
+            return f'{self.nom} ---\n'
 
     def __repr__(self) -> str:
         if self.transitions != []:
@@ -69,7 +69,7 @@ class Automate():
             Représentation d'un automate:
     Il est caractérisé par un alphabet, un ensemble d'état, ceux finaux et initiaux
     et d'un ensemble de valeur sous la forme d'une liste de tuple (i, j, k)
-    avec i l'arigine , j l'étiquette, k l'etat de destination
+    avec i l'origine , j l'étiquette, k l'etat de destination
     '''
 
     def __init__(self, alphabet, initial=[], etats=[], final=[], transitions=[]) -> None:

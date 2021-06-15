@@ -3,6 +3,27 @@ import time
 from AF import *
 
 
+def supp_epsi_transition(A):
+    A1 = Automate(A.alphabet, A.etats_init, A.etats, A.etats_final)
+    for etat in A.etats:
+        ferm = A.epsilon_fermeture(etat, etat)
+        A1.add_etat(etat)
+        for symbol in A.alphabet:
+            dest = set()
+            for e in ferm:
+                a = A[e][symbol]
+                if a != None:
+                    if type(a) != type([]):
+                        dest.add(a)
+                    else:
+                        dest.update(a)
+            for d in dest:
+                A1[etat].add_transition(symbol, d)
+        if (ferm.intersection(A.etats_final) != set()) and etat not in A1.etats_final:
+            A1.etats_final.append(etat)
+    return A1
+
+
 def determiniser(A):
     '''
     Permet de déterminiser un automate suivant l'explication du cours :
@@ -46,25 +67,31 @@ def rendre_complet(A):
         Si l'automate n'est pas déterministe, le rendre détermiste ensuite, 
         si l'on se rend compte qu'il n'est pas complet alors créer un état puit et relier vers lui toute les transition manquante
     '''
-    B = copy.deepcopy(A)
-    if A.est_deterministe():
-        if not B.est_complet():
-            B.add_etat("puit")
-            for symbol in A.alphabet:
-                B["puit"].add_transition(symbol, "puit")
-            for etat in B.etats:
-                for symbol in A.alphabet:
-                    if B[etat][symbol] == None:
-                        B[etat].add_transition(symbol, 'puit')
-        return B
+    B = ''
+    if A.spontanee:
+        B = supp_epsi_transition(A)
+    else:
+        B = copy.deepcopy(A)
+    if not B.est_deterministe():
+        B = determiniser(B)
+    if not B.est_complet():
+        B.add_etat("puit")
+        for symbol in B.alphabet:
+            B["puit"].add_transition(symbol, "puit")
+        for etat in B.etats:
+            for symbol in B.alphabet:
+                if B[etat][symbol] == None:
+                    B[etat].add_transition(symbol, 'puit')
+    return B
 
 
 def main():
     alpha = "ab"
-    etats = [1, 2, 3, 4]
-    transitions = [(1, 'a', 2), (1, 'a', 3), (3, 'a', 3), (3, 'b', 4), (2, 'a', 4),
-                   (4, 'b', 2), ]
-    init = [1]
+    etats = [0, 1, 2, 3, 4]
+    transitions = [(0, 'a', 1), (0, mot_vide, 2), (1, mot_vide, 4),
+                   (2, 'a', 3), (2, 'b', 3), (3, mot_vide, 4), (3, 'b', 2), ]
+
+    init = [0]
     final = [4]
     A = Automate(alpha, init, etats, final, transitions)
     '''print(A[0])
@@ -73,8 +100,9 @@ def main():
    B = copy.deepcopy(A)
    A.add_etat(3)
    print(B)
-   print(A)'''
-    print(determiniser(A))
+   print(A)
+    print(determiniser(A))'''
+    rendre_complet(A)
 
 
 if __name__ == '__main__':
