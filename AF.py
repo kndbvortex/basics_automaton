@@ -117,6 +117,7 @@ class Automate():
         return True
 
     def est_complet(self):
+
         if self.est_deterministe():
             for etat in self.etats:
                 for symbol in self.alphabet:
@@ -126,6 +127,7 @@ class Automate():
         else:
             return False
 
+    # ensemble de tout les etats accessible partant de etat uniquement par des epsilons transitions
     def epsilon_fermeture(self, etat, b):
         q = self[etat]
         fermeture = set()
@@ -139,7 +141,8 @@ class Automate():
         return fermeture
 
     def __str__(self) -> str:
-        s = ''
+
+        s = f'Etat initiaux : {self.etats_init}\nEtat finaux :{self.etats_final}\n'
         for etat in self.etats:
             s += self.etats[etat].__str__()
         return s
