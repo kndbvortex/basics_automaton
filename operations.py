@@ -165,6 +165,23 @@ def intersection(A, B):
     return Automate(B.alphabet, [str((A.etats_init[0], B.etats_init[0]))], etat, final, transitions)
 
 
+def complementaire(A):
+    if not A.est_complet():
+        A = rendre_complet(A)
+    final = set(A.etats.keys()).difference(A.etats_final)
+    B = Automate(A.alphabet, initial=A.etats_init, final=final)
+    B.copie_etat(A)
+    return B
+
+
+def concatenation(A, B):
+    pass
+
+
+def miroir(A):
+    pass
+
+
 def main():
     alpha = "ab"
     etats = [0, 1, 2, 3, 4]
@@ -205,6 +222,9 @@ def main():
     print(determiniser(A))
     print(intersection(A1, A2))
     '''
+    mot = "aaba"
+    print(A1.reconnait(mot))
+    print(complementaire(A1).reconnait(mot))
 
 
 if __name__ == '__main__':

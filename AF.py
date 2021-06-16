@@ -1,3 +1,6 @@
+import copy
+
+
 mot_vide = "ε"
 
 
@@ -92,6 +95,17 @@ class Automate():
         if not (nom in self.etats):
             self.etats[nom] = Etat(nom)
 
+    # Ajouter une transition dans l'automate
+    def add_transition(self, origine, etiquette, destination):
+        if origine in self.etats and destination in self.etat and etiquette in self.alphabet:
+            self[origine].add_transition(etiquette, destination)
+
+    # copie des différents états d'un automates A
+    def copie_etat(self, A):
+        for k, v in A.etats.items():
+            self.add_etat(k)
+            self.etats[k] = copy.deepcopy(v)
+
     # vérifie qu'un mot appartient à un langage
     def reconnait(self, mot) -> bool:
         q = self.etats_init[0]
@@ -107,6 +121,9 @@ class Automate():
                 return True
         return False
 
+    # vérifie si un automate est déterministe suivant le principe suivant
+    # s'il contient plus d'un etat initial est est ND
+    # si parmi les états de l'automate, il y'a un état pour lequel pour un symbole de l'alphabet, on se retrouve sur plus d'un état
     def est_deterministe(self) -> bool:
         if len(self.etats_init) != 1 or self.spontanee:
             return False
@@ -117,7 +134,6 @@ class Automate():
         return True
 
     def est_complet(self):
-
         if self.est_deterministe():
             for etat in self.etats:
                 for symbol in self.alphabet:
