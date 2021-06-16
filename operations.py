@@ -165,7 +165,70 @@ def intersection(A, B):
     return Automate(B.alphabet, [str((A.etats_init[0], B.etats_init[0]))], etat, final, transitions)
 
 
+def minimiser(A):
+    '''
+        Permet de minimiser un automate tel que décris dans le cours:
+        Déjà, s'il n'est pas déterministe, le rendre déterministe
+        Ensuite, construire les classes d'équivalences :
+            on commmence avec 2 classes {etat finaux}, {etat non finaux}
+            on se rassure que pour chaque symbole, l'image de la classe par celui-ci donne une seule classe , si tel n'est pas le cas, diviser cette classe en regroupant les états allant dans la même classe et recommencer 
+    '''
+
+    # retourne l'index de la classe d'équivalence d'un certaint 'etat'
+    def vers_quel_ensemble(list_ensemble, etat) -> int:
+        i, n = 0, len(list_ensemble)
+        while i < n:
+            if etat in list_ensemble[i]:
+                return i
+            else:
+                i += 1
+
+    if not A.est_deterministe():
+        A = determiniser(A)
+    etat_non_finaux = set([x for x in A.etats if x not in A.etats_final])
+    classes_equivalences = list([etat_non_finaux, set(A.etats_final)])
+    i = 0
+    while i < len(classes_equivalences):
+        for symbole in A.alphabet:
+            l = []
+            for etat in classes_equivalences[i]:
+                dest = A[etat][symbole]
+                l.append(vers_quel_ensemble(classes_equivalences, dest))
+            if len(set(l)) == 1:
+                continue
+            else:
+                ensemble_a_separer = classes_equivalences.pop(i)
+                d = {k: [] for k in l}
+                for etat, num in zip(ensemble_a_separer, l):
+                    d[num].append(etat)
+                for key in d:
+                    classes_equivalences.append(set(d[key]))
+                i = 0
+        i += 1
+    initial = [str(classe)
+               for classe in classes_equivalences if A.etats_init[0] in classe]
+    etats = [str(classe) for classe in classes_equivalences]
+    final = [
+        str(classe) for classe in classes_equivalences if classe.intersection(A.etats_final) != set()
+    ]
+    transitions = []
+    for classe in classes_equivalences:
+        for symbole in A.alphabet:
+            representant = next(iter(classe))
+            i = vers_quel_ensemble(classes_equivalences,
+                                   A[representant][symbole])
+            if i != None:
+                dest = classes_equivalences[i]
+                transitions.append((str(classe), symbole, str(dest)))
+    return Automate(A.alphabet, initial, etats, final, transitions)
+
+
 def complementaire(A):
+    '''
+        contruire le complementaire d'un automate tel que vu en cours:
+        Déjà s'il n'est pas complet, le rendre complet.
+        Ensuite, construire un automate identique à A mais ayant pour états final les états non finaux de A
+    '''
     if not A.est_complet():
         A = rendre_complet(A)
     final = set(A.etats.keys()).difference(A.etats_final)
@@ -209,6 +272,31 @@ def main():
     final2 = [0]
     A2 = Automate(alpha2, init2, etats2, final2, transitions2)
 
+    alpha3 = "abc"
+    etats3 = [0, 1, 2, 3, 4, 5]
+    transitions3 = [
+        (0, 'a', 2), (0, 'b', 0), (0, 'c', 1), (1, 'a', 3), (1, 'b', 1),
+        (1, 'c', 3), (2, 'a', 2), (2, 'b', 4), (2, 'c', 3), (3, 'a', 3),
+        (3, 'b', 5), (3, 'c', 3), (4, 'a', 4), (4, 'b', 4),
+        (4, 'c', 5), (5, 'a', 5), (5, 'b', 5), (5, 'c', 5),
+    ]
+
+    init3 = [0]
+    final3 = [4, 5]
+    A3 = Automate(alpha3, init3, etats3, final3, transitions3)
+
+    alpha4 = [0, 1]
+    etats4 = ['a', 'b', 'c', 'd', 'e', 'f']
+    transitions4 = [
+        ('a', 0, 'b'), ('a', 1, 'c'), ('b', 0, 'a'), ('b', 1, 'd'),
+        ('c', 0, 'e'), ('c', 1, 'f'), ('d', 0, 'e'), ('d', 1, 'f'),
+        ('e', 0, 'e'), ('e', 1, 'f'), ('f', 0, 'f'), ('f', 1, 'f'),
+    ]
+
+    init4 = ['a']
+    final4 = ['d', 'c', 'e']
+    A4 = Automate(alpha4, init4, etats4, final4, transitions4)
+
     '''print(A[0])
     print(A.est_deterministe())
     print(A)
@@ -220,11 +308,12 @@ def main():
     print(rendre_complet(A))
     print('\n\n\n')
     print(determiniser(A))
-    print(intersection(A1, A2))
+    print(intersection(A1, A2))print(A1.reconnait(mot))
+    print(complementaire(A1).reconnait(mot))
+    
     '''
     mot = "aaba"
-    print(A1.reconnait(mot))
-    print(complementaire(A1).reconnait(mot))
+    print(minimiser(A4))
 
 
 if __name__ == '__main__':

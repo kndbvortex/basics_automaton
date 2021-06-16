@@ -85,8 +85,7 @@ class Automate():
         for nom_etat in etats:
             self.add_etat(nom_etat)
         for transition in transitions:
-            self.etats[transition[0]].add_transition(
-                transition[1], transition[2])
+            self.add_transition(transition[0], transition[1], transition[2])
             if transition[1] == mot_vide:
                 self.spontanee = True
 
@@ -97,7 +96,7 @@ class Automate():
 
     # Ajouter une transition dans l'automate
     def add_transition(self, origine, etiquette, destination):
-        if origine in self.etats and destination in self.etat and etiquette in self.alphabet:
+        if origine in self.etats and destination in self.etats and etiquette in self.alphabet:
             self[origine].add_transition(etiquette, destination)
 
     # copie des différents états d'un automates A
