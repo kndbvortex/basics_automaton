@@ -101,6 +101,8 @@ class Automate():
     def add_transition(self, origine, etiquette, destination):
         if origine in self.etats and destination in self.etats and etiquette in self.alphabet.union(mot_vide):
             self[origine].add_transition(etiquette, destination)
+            if etiquette == mot_vide:
+                self.spontanee = True
 
     def get_transitions(self):
         transitions = []

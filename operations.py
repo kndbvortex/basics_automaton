@@ -37,40 +37,45 @@ def determiniser(A):
     B = ''
     if A.spontanee:
         B = supp_epsi_transition(A)
+        print(B.est_deterministe())
+        time.sleep(1)
     else:
         B = copy.deepcopy(A)
 
-    etats_definitifs = []
-    transitions = []
     if not B.est_deterministe():
-        initial = set(B.etats_init)
-        l = []
-        l.append(set(initial))
-        while len(l) != 0:
-            etat_en_cours = l.pop(0)
-            for symbol in B.alphabet:
-                initial.clear()
-                for e in etat_en_cours:
-                    a = B[e][symbol]
-                    if a != None:
-                        if type(a) != type([]):
-                            initial.add(a)
-                        else:
-                            initial.update(a)
-                if initial != set():
-                    t = (str(etat_en_cours),
-                         symbol, str(initial))
-                    if not t in transitions:
-                        transitions.append(t)
-                    if not initial in etats_definitifs:
-                        l.append(set(initial))
-            if not etat_en_cours in etats_definitifs:
-                etats_definitifs.append(set(etat_en_cours))
-        final = [
-            str(etat) for etat in etats_definitifs if etat.intersection(B.etats_final) != set()
-        ]
-        etat = [str(etat) for etat in etats_definitifs]
-        return Automate(B.alphabet, [str(set(B.etats_init))], etat, final, transitions)
+        etats_definitifs = []
+        transitions = []
+        if not B.est_deterministe():
+            initial = set(B.etats_init)
+            l = []
+            l.append(set(initial))
+            while len(l) != 0:
+                etat_en_cours = l.pop(0)
+                for symbol in B.alphabet:
+                    initial.clear()
+                    for e in etat_en_cours:
+                        a = B[e][symbol]
+                        if a != None:
+                            if type(a) != type([]):
+                                initial.add(a)
+                            else:
+                                initial.update(a)
+                    if initial != set():
+                        t = (str(etat_en_cours),
+                             symbol, str(initial))
+                        if not t in transitions:
+                            transitions.append(t)
+                        if not initial in etats_definitifs:
+                            l.append(set(initial))
+                if not etat_en_cours in etats_definitifs:
+                    etats_definitifs.append(set(etat_en_cours))
+            final = [
+                str(etat) for etat in etats_definitifs if etat.intersection(B.etats_final) != set()
+            ]
+            etat = [str(etat) for etat in etats_definitifs]
+            B = Automate(
+                B.alphabet, [str(set(B.etats_init))], etat, final, transitions)
+    return B
 
 
 def rendre_complet(A):
@@ -223,6 +228,16 @@ def minimiser(A):
     return Automate(A.alphabet, initial, etats, final, transitions)
 
 
+def canonique(A):
+    """
+        Renvois un automate minimal complet.
+    """
+    B = minimiser(A)
+    if not B.est_complet():
+        B = rendre_complet(B)
+    return B
+
+
 def complementaire(A):
     '''
         contruire le complementaire d'un automate tel que vu en cours:
@@ -271,6 +286,11 @@ def concatenation(A, B):
 
 
 def miroir(A):
+    """
+        changer le sens des transitions de l'automate A, les états finaux deviennent initiaux et vice verca.
+        Après cette transformation,  si l'automate resultant n'est déterministe, le déterminiser le le retourner 
+
+    """
     transitions = A.get_transitions()
     transitions_miroir = []
     for transition in transitions:
@@ -284,7 +304,20 @@ def miroir(A):
 
 
 def iterer(A):
-    pass
+    """
+        Relier tout état final à un état initial par une epsilon transition
+        déterminiser
+    """
+    reconnait_epsi = determiniser(A).reconnait(mot_vide)
+    B = copy.deepcopy(A)
+    for etat in B.etats_final:
+        for init in B.etats_init:
+            B.add_transition(etat, mot_vide, init)
+            if not reconnait_epsi:
+                B.add_transition(init, mot_vide, etat)
+    if not B.est_deterministe():
+        B = determiniser(B)
+    return B
 
 
 def main():
@@ -385,10 +418,10 @@ def main():
     print(intersection(A1, A2))print(A1.reconnait(mot))
     print(complementaire(A1).reconnait(mot))
     print(minimiser(A4))
-    '''
     print(A1.reconnait("abaaa"))
     print(miroir(A1).reconnait("aaaba"))
-
+    '''
+    print(iterer(A1))
     # print(determiniser(A5))
     #print(concatenation(A6, A7))
 
