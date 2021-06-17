@@ -94,10 +94,21 @@ class Automate():
         if not (nom in self.etats):
             self.etats[nom] = Etat(nom)
 
+    def get_etats(self):
+        return [etat for etat in self.etats]
+
     # Ajouter une transition dans l'automate
     def add_transition(self, origine, etiquette, destination):
-        if origine in self.etats and destination in self.etats and etiquette in self.alphabet:
+        if origine in self.etats and destination in self.etats and etiquette in self.alphabet.union(mot_vide):
             self[origine].add_transition(etiquette, destination)
+
+    def get_transitions(self):
+        transitions = []
+        for etat in self.etats:
+            for transition in self.etats[etat].transitions:
+                transitions.append(
+                    (etat, transition.etiquette, transition.etat_dest))
+        return transitions
 
     # copie des différents états d'un automates A
     def copie_etat(self, A):

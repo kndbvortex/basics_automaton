@@ -238,10 +238,43 @@ def complementaire(A):
 
 
 def concatenation(A, B):
-    pass
+    '''
+        concatener 2 automates tel que vu en cours :
+        Pour nous faciliter les choses, nous déterminisons A et B s'ils sont non déterministes
+        L'automate resultat contient tous les états exceptés les états initiaux de B.
+        l'état initial est l'état initial de A 
+        les transitions sont celles de A, celles de B où l'origine n'est pas un de ses états initials, (Final(A),e,sigma(initial de B))
+    '''
+    if not A.est_deterministe():
+        A = determiniser(A)
+    if not B.est_deterministe():
+        B = determiniser(B)
+
+    if set(A.get_etats()).intersection(B.get_etats()) != set():
+        return "Veuillez entrez 2 automates ayant des états différents"
+    etats = set(A.get_etats() + B.get_etats()).difference(B.etats_init)
+    finals = []
+    if set(B.etats_init).intersection(B.etats_final) == set():
+        finals = B.etats_final
+    else:
+        finals = set(B.etats_final + A.etats_final).difference(B.etats_init)
+    C = Automate(A.alphabet, etats=etats, initial=A.etats_init, final=finals)
+    C.copie_etat(A)
+    transitions_2 = B.get_transitions()
+    for transition in transitions_2:
+        if not (transition[0] in B.etats_init):
+            C.add_transition(transition[0], transition[1], transition[2])
+        else:
+            for etat in A.etats_final:
+                C.add_transition(etat, transition[1], transition[2])
+    return C
 
 
 def miroir(A):
+    pass
+
+
+def iterer(A):
     pass
 
 
@@ -297,6 +330,37 @@ def main():
     final4 = ['d', 'c', 'e']
     A4 = Automate(alpha4, init4, etats4, final4, transitions4)
 
+    alpha5 = ['a', 'b']
+    etats5 = [0, 1, 2, 3]
+    transitions5 = [
+        (0, 'a', 1), (0, mot_vide, 2), (1, 'a', 0), (1, 'b', 1), (2, 'a', 3), (2, 'b', 1), (3, mot_vide, 0)]
+
+    init5 = [0]
+    final5 = [2]
+    A5 = Automate(alpha5, init5, etats5, final5, transitions5)
+
+    alpha6 = ['a', 'b', 'c']
+    etats6 = [1, 2, 3, 4, 5, 6]
+    transitions6 = [
+        (1, 'a', 2), (1, 'b', 4), (2, 'a', 5), (2, 'b', 3), (2, 'c', 2),
+        (3, 'a', 6), (3, 'b', 4), (4, 'c', 5), (5, 'a', 5), (5, 'a', 6),
+    ]
+
+    init6 = [1]
+    final6 = [6]
+    A6 = Automate(alpha6, init6, etats6, final6, transitions6)
+
+    alpha7 = ['a', 'b']
+    etats7 = ['A', 'B', 'C', 'D', 'E']
+    transitions7 = [
+        ('A', 'a', 'B'), ('A', 'b', 'C'), ('B', 'a', 'B'), ('B', 'b', 'D'),
+        ('C', 'a', 'B'), ('C', 'b', 'C'), ('D', 'a', 'B'), ('D', 'b', 'E'),
+        ('E', 'a', 'B'), ('E', 'b', 'C')
+    ]
+
+    init7 = ['A']
+    final7 = ['E']
+    A7 = Automate(alpha7, init7, etats7, final7, transitions7)
     '''print(A[0])
     print(A.est_deterministe())
     print(A)
@@ -308,12 +372,14 @@ def main():
     print(rendre_complet(A))
     print('\n\n\n')
     print(determiniser(A))
+    mot = "aaba"
     print(intersection(A1, A2))print(A1.reconnait(mot))
     print(complementaire(A1).reconnait(mot))
-    
-    '''
-    mot = "aaba"
     print(minimiser(A4))
+    '''
+
+    # print(determiniser(A5))
+    print(concatenation(A6, A7))
 
 
 if __name__ == '__main__':
