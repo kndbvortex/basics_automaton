@@ -271,7 +271,16 @@ def concatenation(A, B):
 
 
 def miroir(A):
-    pass
+    transitions = A.get_transitions()
+    transitions_miroir = []
+    for transition in transitions:
+        transitions_miroir.append(
+            (transition[2], transition[1], transition[0]))
+    C = Automate(A.alphabet, A.etats_final, A.get_etats(),
+                 A.etats_init, transitions_miroir)
+    if not C.est_deterministe():
+        C = determiniser(C)
+    return C
 
 
 def iterer(A):
@@ -377,9 +386,11 @@ def main():
     print(complementaire(A1).reconnait(mot))
     print(minimiser(A4))
     '''
+    print(A1.reconnait("abaaa"))
+    print(miroir(A1).reconnait("aaaba"))
 
     # print(determiniser(A5))
-    print(concatenation(A6, A7))
+    #print(concatenation(A6, A7))
 
 
 if __name__ == '__main__':
