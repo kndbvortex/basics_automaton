@@ -367,14 +367,13 @@ def transform_post_fixe(expression):
 
 def construction_thompson(expression):
     '''
-        construction de thompson: nous prenons en entré une expression en notation post fixé, et construisons l'automate thompson pur par ajout de transitions dans une liste de transition de sorte que si l'on rencontre un caractère alors on a une transition étiquete par celui ci
+        construction de thompson: nous prenons en entré une expression en notation post fixé, et construisons l'automate thompson pur par ajout de transitions dans une liste de transition 
+        nous avons un tableau de tuple a 2 dimension : son rôle est de pouvoir faire les liaisons entre nous constructions précédente et l'opérateur qu'on rencontre
     '''
     alphabet = []
     caractere_accepte = ascii_lowercase + '0123456789'
     transitions = list()
     av_dernier = list()
-    operateurs = '+.*'
-    etat_init = 0
     num_init = -1
     num_final = 0
     nb_etat = 0
@@ -382,67 +381,43 @@ def construction_thompson(expression):
         if expression[i] in caractere_accepte:
             alphabet.append(expression[i])
             nb_etat += 1
+            av_dernier.append((num_init, num_final))
             transitions.append((num_init, expression[i], num_final))
             num_init, num_final = num_init - 1, num_final + 1
-            etat_init = etat_init - 1
         else:
             if expression[i] == '+':
                 nb_etat += 1
-                transitions.append((num_init, mot_vide, num_init+1))
-                transitions.append((num_final - 1, mot_vide, num_final))
-
-                if expression[i-1] not in '+.*' and expression[i-2] not in '.+*':
-                    transitions.append((num_init, mot_vide, num_init + 2))
-                    transitions.append((num_final - 2, mot_vide, num_final))
-                else:
-                    q = av_dernier.pop()
-                    transitions.append((num_init, mot_vide, q[0]))
-                    transitions.append((q[1], mot_vide, num_final))
-                if set(['+', '.']).intersection(expression[i+2:]) != set():
-                    av_dernier.append((num_init, num_final))
-                    print("Plus :", av_dernier)
-                    time.sleep(3)
+                p = av_dernier.pop()
+                q = av_dernier.pop()
+                transitions.append((num_init, mot_vide, p[0]))
+                transitions.append((num_init, mot_vide, q[0]))
+                transitions.append((p[1], mot_vide, num_final))
+                transitions.append((q[1], mot_vide, num_final))
+                av_dernier.append((num_init, num_final))
 
                 num_init, num_final = num_init - 1, num_final + 1
-                etat_init = num_init - 1
 
             elif expression[i] == '*':
                 nb_etat += 1
-                transitions.append((num_final-1, mot_vide, num_init+1))
-                transitions.append((num_final-1, mot_vide, num_final))
-                transitions.append((num_init, mot_vide, num_init + 1))
+                p = av_dernier.pop()
+                transitions.append((p[1], mot_vide, p[0]))
+                transitions.append((p[1], mot_vide, num_final))
+                transitions.append((num_init, mot_vide, p[0]))
                 transitions.append((num_init, mot_vide, num_final))
-                if set(['+', '.']).intersection(expression[i+2:]) != set():
-                    av_dernier.append((num_init, num_final))
-                    print("etoile:", av_dernier)
-                    time.sleep(3)
+                av_dernier.append((num_init, num_final))
 
                 num_init, num_final = num_init - 1, num_final + 1
-                etat_init = num_init - 1
 
             elif expression[i] == '.':
-                if expression[i-1] not in '+.*' and expression[i-2] not in '.+*':
-                    transitions.append((num_final-2, mot_vide, num_init + 1))
-                    etat_init = num_init + 2
-                else:
-                    q = av_dernier.pop()
-                    transitions.append((q[1], mot_vide, num_init + 1))
-                    etat_init = q[0]
-
-                if set(['+', '.']).intersection(expression[i:]) != set():
-                    av_dernier.append((etat_init, num_final - 1))
-                    print("concat:", av_dernier)
-                    time.sleep(3)
+                p = av_dernier.pop()
+                q = av_dernier.pop()
+                transitions.append((q[1], mot_vide, p[0]))
+                av_dernier.append((q[0], p[1]))
 
     etats = []
     for i in range(0 - nb_etat, nb_etat):
         etats.append(i)
-    if expression[-1] == '.':
-        if av_dernier == []:
-            num_init = num_init + 1
-        else:
-            num_init = etat_init - 1
-    return Automate(alphabet, [num_init+1], etats, [num_final-1], transitions)
+    return Automate(alphabet, [av_dernier[0][0]], etats, [av_dernier[0][1]], transitions)
 
 
 def construction_glushkov(expression):
@@ -558,11 +533,10 @@ def main():
     print(es, e)
     if e != 'expression invalide':
         B = construction_thompson(e)
-        time.sleep(2)
         print(B)
         # time.sleep(3)
         B = determiniser(B)
-        print(B.reconnait('abb'))
+        print(B.reconnait('aabbb'))
     else:
         print("synthaxe invalide")
 
