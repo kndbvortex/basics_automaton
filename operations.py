@@ -1,6 +1,10 @@
 import copy
+from sys import exec_prefix
 import time
+from typing import final
+from collections import deque
 from AF import *
+from string import ascii_lowercase
 
 
 def supp_epsi_transition(A):
@@ -37,8 +41,6 @@ def determiniser(A):
     B = ''
     if A.spontanee:
         B = supp_epsi_transition(A)
-        print(B.est_deterministe())
-        time.sleep(1)
     else:
         B = copy.deepcopy(A)
 
@@ -176,7 +178,7 @@ def minimiser(A):
         Déjà, s'il n'est pas déterministe, le rendre déterministe
         Ensuite, construire les classes d'équivalences :
             on commmence avec 2 classes {etat finaux}, {etat non finaux}
-            on se rassure que pour chaque symbole, l'image de la classe par celui-ci donne une seule classe , si tel n'est pas le cas, diviser cette classe en regroupant les états allant dans la même classe et recommencer 
+            on se rassure que pour chaque symbole, l'image de la classe par celui-ci donne une seule classe , si tel n'est pas le cas, diviser cette classe en regroupant les états allant dans la même classe et recommencer
     '''
 
     # retourne l'index de la classe d'équivalence d'un certaint 'etat'
@@ -257,7 +259,7 @@ def concatenation(A, B):
         concatener 2 automates tel que vu en cours :
         Pour nous faciliter les choses, nous déterminisons A et B s'ils sont non déterministes
         L'automate resultat contient tous les états exceptés les états initiaux de B.
-        l'état initial est l'état initial de A 
+        l'état initial est l'état initial de A
         les transitions sont celles de A, celles de B où l'origine n'est pas un de ses états initials, (Final(A),e,sigma(initial de B))
     '''
     if not A.est_deterministe():
@@ -288,7 +290,7 @@ def concatenation(A, B):
 def miroir(A):
     """
         changer le sens des transitions de l'automate A, les états finaux deviennent initiaux et vice verca.
-        Après cette transformation,  si l'automate resultant n'est déterministe, le déterminiser le le retourner 
+        Après cette transformation,  si l'automate resultant n'est déterministe, le déterminiser le le retourner
 
     """
     transitions = A.get_transitions()
@@ -318,6 +320,133 @@ def iterer(A):
     if not B.est_deterministe():
         B = determiniser(B)
     return B
+
+
+def transform_post_fixe(expression):
+    caractere_accepte = caractere_accepte = ascii_lowercase + '0123456789'
+    file = deque()
+    pile = list()
+    for i in range(len(expression)):
+        if expression[i] in caractere_accepte:
+            file.append(expression[i])
+            if i > 0 and expression[i-1] in ')*' + caractere_accepte:
+                file.append('.')
+        elif expression[i] == '(':
+            if i > 0 and expression[i-1] == ')':
+                pile.append('.')
+            pile.append(expression[i])
+
+        elif expression[i] == ')':
+            a = len(pile)
+            while a > 0 and pile[a - 1] != '(':
+                file.append(pile.pop())
+                a -= 1
+            pile.pop()
+            if a < 0:
+                return "expression invalide"
+        else:
+            if expression[i] == '+':
+                a = len(pile)-1
+                while a >= 0 and pile[a] in '*.':
+                    file.append(pile.pop())
+                    a -= 1
+            if expression[i] == '*':
+                file.append('*')
+            else:
+                pile.append(expression[i])
+
+    a = len(pile) - 1
+    while len(pile) != 0:
+        if pile[a] == '(':
+            return "expression invalide"
+        else:
+            file.append(pile.pop())
+            a -= 1
+    return ''.join(file)
+
+
+def construction_thompson(expression):
+    '''
+        construction de thompson: nous prenons en entré une expression en notation post fixé, et construisons l'automate thompson pur par ajout de transitions dans une liste de transition de sorte que si l'on rencontre un caractère alors on a une transition étiquete par celui ci
+    '''
+    alphabet = []
+    caractere_accepte = ascii_lowercase + '0123456789'
+    transitions = list()
+    av_dernier = list()
+    operateurs = '+.*'
+    etat_init = 0
+    num_init = -1
+    num_final = 0
+    nb_etat = 0
+    for i in range(len(expression)):
+        if expression[i] in caractere_accepte:
+            alphabet.append(expression[i])
+            nb_etat += 1
+            transitions.append((num_init, expression[i], num_final))
+            num_init, num_final = num_init - 1, num_final + 1
+            etat_init = etat_init - 1
+        else:
+            if expression[i] == '+':
+                nb_etat += 1
+                transitions.append((num_init, mot_vide, num_init+1))
+                transitions.append((num_final - 1, mot_vide, num_final))
+
+                if expression[i-1] not in '+.*' and expression[i-2] not in '.+*':
+                    transitions.append((num_init, mot_vide, num_init + 2))
+                    transitions.append((num_final - 2, mot_vide, num_final))
+                else:
+                    q = av_dernier.pop()
+                    transitions.append((num_init, mot_vide, q[0]))
+                    transitions.append((q[1], mot_vide, num_final))
+                if set(['+', '.']).intersection(expression[i+2:]) != set():
+                    av_dernier.append((num_init, num_final))
+                    print("Plus :", av_dernier)
+                    time.sleep(3)
+
+                num_init, num_final = num_init - 1, num_final + 1
+                etat_init = num_init - 1
+
+            elif expression[i] == '*':
+                nb_etat += 1
+                transitions.append((num_final-1, mot_vide, num_init+1))
+                transitions.append((num_final-1, mot_vide, num_final))
+                transitions.append((num_init, mot_vide, num_init + 1))
+                transitions.append((num_init, mot_vide, num_final))
+                if set(['+', '.']).intersection(expression[i+2:]) != set():
+                    av_dernier.append((num_init, num_final))
+                    print("etoile:", av_dernier)
+                    time.sleep(3)
+
+                num_init, num_final = num_init - 1, num_final + 1
+                etat_init = num_init - 1
+
+            elif expression[i] == '.':
+                if expression[i-1] not in '+.*' and expression[i-2] not in '.+*':
+                    transitions.append((num_final-2, mot_vide, num_init + 1))
+                    etat_init = num_init + 2
+                else:
+                    q = av_dernier.pop()
+                    transitions.append((q[1], mot_vide, num_init + 1))
+                    etat_init = q[0]
+
+                if set(['+', '.']).intersection(expression[i:]) != set():
+                    av_dernier.append((etat_init, num_final - 1))
+                    print("concat:", av_dernier)
+                    time.sleep(3)
+
+    etats = []
+    for i in range(0 - nb_etat, nb_etat):
+        etats.append(i)
+    if expression[-1] == '.':
+        if av_dernier == []:
+            num_init = num_init + 1
+        else:
+            num_init = etat_init - 1
+    return Automate(alphabet, [num_init+1], etats, [num_final-1], transitions)
+
+
+def construction_glushkov(expression):
+    pass
 
 
 def main():
@@ -420,10 +549,22 @@ def main():
     print(minimiser(A4))
     print(A1.reconnait("abaaa"))
     print(miroir(A1).reconnait("aaaba"))
-    '''
     print(iterer(A1))
-    # print(determiniser(A5))
-    #print(concatenation(A6, A7))
+    print(determiniser(A5))
+    print(concatenation(A6, A7))
+    '''
+    es = '((a+b)(a+bb))*'
+    e = transform_post_fixe(es)
+    print(es, e)
+    if e != 'expression invalide':
+        B = construction_thompson(e)
+        time.sleep(2)
+        print(B)
+        # time.sleep(3)
+        B = determiniser(B)
+        print(B.reconnait('abb'))
+    else:
+        print("synthaxe invalide")
 
 
 if __name__ == '__main__':

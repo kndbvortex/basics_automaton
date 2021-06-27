@@ -1,5 +1,6 @@
 mot_vide = "ε"
 
+
 class node:
     def __init__(self, n) -> None:
         self.info = n
@@ -14,7 +15,7 @@ class node:
         q = a
         while a.suivant != None:
             a = a.suivant
-        a.suivant = node(x) 
+        a.suivant = node(x)
         a.suivant.parent = a
 
     def print(self):
@@ -25,16 +26,21 @@ class node:
 
     def test(self):
         a = node(1)
-        for i in range(3,7):
+        for i in range(3, 7):
             print(i)
             a.add(i)
         a.print()
 
+
 if __name__ == '__main__':
-    from sys import getsizeof
-    a = node(1)
-    print(getsizeof(a))
-    for i in range(3,7):
-        a.add(i)
-    print(getsizeof(a))
-    #a.print()
+    # from sys import getsizeof
+    # a = node(1)
+    # print(getsizeof(a))
+    # for i in range(3,7):
+    #     a.add(i)
+    # print(getsizeof(a))
+    # a.print()
+    class Noeud():
+        def __init__(self, t1=None, t2=None) -> None:
+            self.trnasition1 = t1
+            self.trnasition2 = t2
