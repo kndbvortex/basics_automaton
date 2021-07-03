@@ -156,7 +156,7 @@ class Automate():
             return False
 
     # ensemble de tout les etats accessible partant de etat uniquement par des epsilons transitions
-    def epsilon_fermeture(self, etat, b):
+    def epsilon_fermeture(self, etat):
         traiter = set()
         en_cours = [etat]
         while len(en_cours) != 0:
@@ -167,17 +167,6 @@ class Automate():
                         en_cours.append(transition.etat_dest)
             traiter.add(e)
         return traiter
-
-        q = self[etat]
-        fermeture = set()
-        for transition in q.transitions:
-            if transition.is_epsilon():
-                fermeture.add(transition.etat_dest)
-        a = set(fermeture) - {b, etat}
-        for e in a:
-            fermeture.update(self.epsilon_fermeture(e, b))
-        fermeture.add(etat)
-        return fermeture
 
     def __str__(self) -> str:
 

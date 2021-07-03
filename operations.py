@@ -1,5 +1,4 @@
 import copy
-from sys import exec_prefix
 import time
 from typing import final
 from collections import deque
@@ -14,7 +13,7 @@ def supp_epsi_transition(A):
     '''
     A1 = Automate(A.alphabet, A.etats_init, A.etats, A.etats_final)
     for etat in A.etats:
-        ferm = A.epsilon_fermeture(etat, etat)
+        ferm = A.epsilon_fermeture(etat)
         A1.add_etat(etat)
         for symbol in A.alphabet:
             dest = set()
@@ -323,7 +322,7 @@ def iterer(A):
 
 
 def transform_post_fixe(expression):
-    caractere_accepte = caractere_accepte = ascii_lowercase + '0123456789'
+    caractere_accepte = ascii_lowercase + '0123456789'
     file = deque()
     pile = list()
     for i in range(len(expression)):
@@ -332,7 +331,7 @@ def transform_post_fixe(expression):
             if i > 0 and expression[i-1] in ')*' + caractere_accepte:
                 file.append('.')
         elif expression[i] == '(':
-            if i > 0 and expression[i-1] == ')':
+            if i > 0 and expression[i-1] in ')' + caractere_accepte:
                 pile.append('.')
             pile.append(expression[i])
 
@@ -372,11 +371,8 @@ def construction_thompson(expression):
     '''
     alphabet = []
     caractere_accepte = ascii_lowercase + '0123456789'
-    transitions = list()
-    av_dernier = list()
-    num_init = -1
-    num_final = 0
-    nb_etat = 0
+    transitions, av_dernier = list(), list()
+    num_init, num_final, nb_etat = -1, 0, 0
     for i in range(len(expression)):
         if expression[i] in caractere_accepte:
             alphabet.append(expression[i])
@@ -422,6 +418,90 @@ def construction_thompson(expression):
 
 def construction_glushkov(expression):
     pass
+
+
+def supprimer_etat(etat, transitions):
+    transitions_origine = []
+    boucle = []
+    transitions_destination = []
+    i = 0
+    while i < len(transitions):
+        if transitions[i][0] == etat and transitions[i][0] != transitions[i][2]:
+            transitions_origine.append(transitions.pop(i))
+        elif transitions[i][2] == etat and transitions[i][0] != transitions[i][2]:
+            transitions_destination.append(transitions.pop(i))
+        elif transitions[i][0] == etat and transitions[i][0] == transitions[i][2]:
+            boucle.append(transitions.pop(i))
+        else:
+            i += 1
+
+    eti_boucle = ''
+    for i in range(len(boucle)):
+        eti_boucle += boucle[i][1]
+        if i != len(boucle) - 1:
+            eti_boucle += '+'
+    for t in transitions_destination:
+        for t2 in transitions_origine:
+            etiquette = ''
+            if t[1] == mot_vide and t2[1] == mot_vide:
+                if eti_boucle not in [mot_vide, '']:
+                    etiquette += f'({eti_boucle})*'
+                else:
+                    etiquette = mot_vide
+            elif t[1] == mot_vide and t2[1] != mot_vide:
+                if eti_boucle not in [mot_vide, '']:
+                    etiquette += f'({eti_boucle})*'
+                etiquette += t2[1]
+            elif t[1] != mot_vide and t2[1] == mot_vide:
+                etiquette = t[1]
+                if eti_boucle not in [mot_vide, '']:
+                    etiquette += f'({eti_boucle})*'
+            else:
+                etiquette = t[1]
+                if eti_boucle not in [mot_vide, '']:
+                    etiquette += f'({eti_boucle})*'
+                etiquette += t2[1]
+            transitions.append((t[0], etiquette, t2[2]))
+
+
+def automate_vers_expression(A):
+    transitions = A.get_transitions()
+    etat_nbre_transition = {etat: 0 for etat in A.etats}
+    for t in transitions:
+        if t[0] == t[2]:
+            etat_nbre_transition[t[0]] += 1
+        else:
+            etat_nbre_transition[t[0]] += 1
+            etat_nbre_transition[t[2]] += 1
+    l = sorted(etat_nbre_transition.items(), key=lambda item: item[1])
+    etat_nbre_transition = []
+    i = 1
+    j = 0
+    etat_nbre_transition.append(l[0])
+    while i < len(l):
+        if etat_nbre_transition[j][1] < l[i][1]:
+            etat_nbre_transition.append(l[i])
+        else:
+            k = j
+            while k >= 0 and etat_nbre_transition[k][1] == l[i][1] and etat_nbre_transition[k][0] < l[i][0]:
+                k -= 1
+            etat_nbre_transition.insert(k+1, l[i])
+        i += 1
+        j += 1
+
+    for e in A.etats_init:
+        transitions.append(('Init', mot_vide, e))
+    for e in A.etats_final:
+        transitions.append((e, mot_vide, 'Final'))
+
+    for etat in etat_nbre_transition:
+        supprimer_etat(etat[0], transitions)
+
+    expression = transitions[0][1]
+    for i in range(1, len(transitions)):
+        expression += f' + {transitions[i][1]}'
+
+    return expression
 
 
 def main():
@@ -507,6 +587,16 @@ def main():
     init7 = ['A']
     final7 = ['E']
     A7 = Automate(alpha7, init7, etats7, final7, transitions7)
+
+    alpha3 = "ab"
+    etats3 = [0, 1, 2, ]
+    transitions3 = [
+        (0, 'a', 1), (0, 'b', 1), (1, 'a', 0), (1, 'b', 2), (2, 'b', 0)
+    ]
+
+    init3 = [0]
+    final3 = [0]
+    A3 = Automate(alpha3, init3, etats3, final3, transitions3)
     '''print(A[0])
     print(A.est_deterministe())
     print(A)
@@ -527,18 +617,21 @@ def main():
     print(iterer(A1))
     print(determiniser(A5))
     print(concatenation(A6, A7))
-    '''
-    es = '((a+b)(a+bb))*'
+    es = 'ab(a+b)*+c+d+(a*b)*'
     e = transform_post_fixe(es)
     print(es, e)
     if e != 'expression invalide':
         B = construction_thompson(e)
         print(B)
         # time.sleep(3)
-        B = determiniser(B)
-        print(B.reconnait('aabbb'))
+        B = canonique(B)
+        print(B)
+        print(B.reconnait(''))
     else:
         print("synthaxe invalide")
+    
+    print(automate_vers_expression(A2))
+    '''
 
 
 if __name__ == '__main__':
