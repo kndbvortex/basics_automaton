@@ -1,6 +1,5 @@
 import copy
 import time
-from typing import final
 from collections import deque
 from AF import *
 from string import ascii_lowercase
@@ -11,10 +10,15 @@ def supp_epsi_transition(A):
         Permet de supprimer les epsilons transitions suivant le principe vu en cours:
         Pour chaque etat, construire son epsilon fermeture, puis déterminer l'image par chaque lettre de l'alphabet par cet ensemble(epsilon fermeture puis relié) on crée donc une transition entre ce sommet et chaque element de l'image étiqueté par ce symbole
     '''
-    A1 = Automate(A.alphabet, A.etats_init, A.etats, A.etats_final)
+    e = A.get_transitions()
+    etats = [yt for yt in A.etats_init]
+    for element in e:
+        if element[1] != mot_vide:
+            etats.append(element[2])
+    e.clear()
+    A1 = Automate(A.alphabet, A.etats_init, etats, A.etats_final)
     for etat in A.etats:
         ferm = A.epsilon_fermeture(etat)
-        A1.add_etat(etat)
         for symbol in A.alphabet:
             dest = set()
             for e in ferm:
@@ -25,9 +29,10 @@ def supp_epsi_transition(A):
                     else:
                         dest.update(a)
             for d in dest:
-                A1[etat].add_transition(symbol, d)
+                A1.add_transition(etat, symbol, d)
         if (ferm.intersection(A.etats_final) != set()) and etat not in A1.etats_final:
-            A1.etats_final.append(etat)
+            if etat in etats:
+                A1.etats_final.append(etat)
     return A1
 
 
@@ -309,7 +314,7 @@ def iterer(A):
         Relier tout état final à un état initial par une epsilon transition
         déterminiser
     """
-    reconnait_epsi = determiniser(A).reconnait(mot_vide)
+    reconnait_epsi = determiniser(A).reconnait("")
     B = copy.deepcopy(A)
     for etat in B.etats_final:
         for init in B.etats_init:
@@ -369,6 +374,7 @@ def construction_thompson(expression):
         construction de thompson: nous prenons en entré une expression en notation post fixé, et construisons l'automate thompson pur par ajout de transitions dans une liste de transition 
         nous avons un tableau de tuple a 2 dimension : son rôle est de pouvoir faire les liaisons entre nous constructions précédente et l'opérateur qu'on rencontre
     '''
+    expression = transform_post_fixe(expression)
     alphabet = []
     caractere_accepte = ascii_lowercase + '0123456789'
     transitions, av_dernier = list(), list()
@@ -417,7 +423,27 @@ def construction_thompson(expression):
 
 
 def construction_glushkov(expression):
-    pass
+    caractere_acepte = ascii_lowercase + '0123456789'
+    expression_post = transform_post_fixe(expression)
+    premier = []
+    dernier = []
+    facteur = []
+    etats = []
+    l = []
+    j = 1
+
+    for i in range(len(expression)):
+        if expression[i] in caractere_acepte:
+            l.append((expression[i], j, i))
+            j += 1
+    for i in range(len(l) + 1):
+        etats.append(i)
+
+    if expression_post[-1] != '+':
+        if expression_post[-1] == '.':
+            dernier.append(expression_post[-2])
+        elif expression_post[-1] == '*':
+            pass
 
 
 def supprimer_etat(etat, transitions):
@@ -465,6 +491,7 @@ def supprimer_etat(etat, transitions):
 
 
 def automate_vers_expression(A):
+    A = minimiser(A)
     transitions = A.get_transitions()
     etat_nbre_transition = {etat: 0 for etat in A.etats}
     for t in transitions:
@@ -502,6 +529,33 @@ def automate_vers_expression(A):
         expression += f' + {transitions[i][1]}'
 
     return expression
+
+
+def construction_automate() -> Automate:
+    alphabet = input(
+        "Entrez les symbole de l'alphabet séparé par des virgule Ex: 'a,b,c'\n")
+    transitions = []
+    etat = input(
+        "Entrez les différents états de l'automate séparé par des virgule Ex: '0,1,2'\n")
+    init = input(
+        "Entrez les différents état(s) initial(aux) de l'automate séparé par des virgule Ex: '0,1,2'\n")
+    final = input(
+        "Entrez le(s) différents état(s) final(aux) de l'automate séparé par des virgule Ex: '0,1,2'\n")
+    init = init.split(',')
+    final = final.split(',')
+    liste_etat = etat.split(',')
+    n = int(input("Entrez le nombre de transitions"))
+    for i in range(n):
+        t = input(f"Entrez la {i+1} transition  Ex: '0 a 2").split(' ')
+        if t[1] == "&":
+            t[1] = mot_vide
+        transitions.append((t[0], t[1], t[2]))
+    return Automate(alphabet, init, etat, final, transitions)
+
+
+def afficher_menu(l, numerotation, t):
+    for i in range(len(l)):
+        print(f'{numerotation[i]}-{l[i]}'.center(t))
 
 
 def main():
@@ -589,13 +643,14 @@ def main():
     A7 = Automate(alpha7, init7, etats7, final7, transitions7)
 
     alpha3 = "ab"
-    etats3 = [0, 1, 2, ]
+    etats3 = [0, 1, 2, 3]
     transitions3 = [
-        (0, 'a', 1), (0, 'b', 1), (1, 'a', 0), (1, 'b', 2), (2, 'b', 0)
+        (0, 'a', 1), (0, 'b', 0), (1, 'a', 2),
+        (1, 'b', 0), (2, 'a', 3), (2, 'b', 0), (3, 'b', 0),
     ]
 
     init3 = [0]
-    final3 = [0]
+    final3 = [0, 1, 2, 3]
     A3 = Automate(alpha3, init3, etats3, final3, transitions3)
     '''print(A[0])
     print(A.est_deterministe())
@@ -630,9 +685,161 @@ def main():
     else:
         print("synthaxe invalide")
     
-    print(automate_vers_expression(A2))
+    )
     '''
+    choix = ''
+    grand_choix = ["Automate", "Expression", "Quitter"]
+    sous_choix1 = [
+
+        "Déterminiser",
+        "Expression correspondante",
+        "Reconnaissance des mots",
+        "Completer l'automate",
+        "Automate minimal",
+        "Automate canonique",
+        "Automate miroir",
+        "Automate itérer",
+        "Automate complémentaire",
+        "Union de deux automates",
+        "Intersection de deux automates",
+        "Concaténation de deux automates",
+        "Quitter"
+    ]
+    sous_choix2 = [
+        "Construction de thompson pure",
+        "Construction de Glushkov",
+        "Quitter"
+    ]
+    while True:
+        print("="*100)
+        print("TP 304".center(100))
+        print("="*100)
+        afficher_menu(grand_choix, '120', 100)
+        choix = input("Entrez votre choix : ")
+        if choix == '1':
+            choix_1 = ""
+            A = construction_automate()
+            while choix_1 != ascii_lowercase[len(sous_choix1)-1]:
+                afficher_menu(sous_choix1, ascii_lowercase, 100)
+                choix_1 = input("Entrez votre choix : ")
+                if choix_1 == 'a':
+                    print('L\'automate détermisé de A est :')
+                    B = determiniser(A)
+                    print(B)
+                elif choix_1 == 'b':
+                    print('L\'expression correspondante à l\'automate A:')
+                    print(automate_vers_expression(A))
+                    time.sleep(3)
+                elif choix_1 == 'c':
+                    mot = input("Entrez le mot à reconnaitre")
+                    if B.reconnait(mot):
+                        print('Mot reconnu par l\'automate')
+                    else:
+                        print("mot non reconnu par l'automate")
+                    time.sleep(3)
+                elif choix_1 == 'd':
+                    print('L\'automate complet de A est :')
+                    B = rendre_complet(A)
+                    print(B)
+                    time.sleep(3)
+                elif choix_1 == 'e':
+                    print('L\'automate minimal de A est :')
+                    B = minimiser(A)
+                    print(B)
+                    time.sleep(3)
+                elif choix_1 == 'f':
+                    print('L\'automate canonique de A est :')
+                    B = canonique(A)
+                    print(B)
+                    time.sleep(3)
+                elif choix_1 == 'g':
+                    print('L\'automate miroir de A est :')
+                    B = miroir(A)
+                    print(B)
+                    time.sleep(3)
+                elif choix_1 == 'h':
+                    print('L\'automate itéré de A est :')
+                    B = iterer(A)
+                    print(B)
+                    time.sleep(3)
+                elif choix_1 == 'i':
+                    print('L\'automate complementaire de A est :')
+                    B = complementaire(A)
+                    print(B)
+                    time.sleep(3)
+                elif choix_1 == 'j':
+                    pass
+                elif choix_1 == 'k':
+                    pass
+                elif choix_1 == 'l':
+                    pass
+                else:
+                    print("Entrez un choix valide")
+                    time.sleep(2)
+        elif choix == '2':
+            choix_2 = ''
+            while choix_2 != ascii_lowercase[len(sous_choix2) - 1]:
+                afficher_menu(sous_choix2, ascii_lowercase, 100)
+                choix_2 = input("Entrez votre choix : ")
+                if choix_2 == 'a':
+                    expression = input(
+                        "Entrez l'expression reguliere valide: ")
+                    B = construction_thompson(expression)
+                    print(B)
+                    time.sleep(3)
+                elif choix_2 == 'b':
+                    expression = input(
+                        "Entrez l'expression réguliere valide: ")
+                    B = construction_glushkov(expression)
+                    time.sleep(3)
+                elif choix_2 == ascii_lowercase[len(sous_choix2)-1]:
+                    pass
+                else:
+                    print("Entrez un choix valide")
+
+        elif choix == '0':
+            break
+        else:
+            print("Entrez un choix valide")
+            time.sleep(2)
+    print("Merci".center(100))
 
 
 if __name__ == '__main__':
-    main()
+    alpha3 = "ab"
+    etats3 = [0, 1, 2]
+    transitions3 = [
+        (0, 'a', 1), (0, 'b', 0),  (1, 'a', 2), (1, 'b', 1),
+        (2, 'a', 0), (2, 'b', 2)
+    ]
+
+    init3 = [0]
+    final3 = [0]
+    A3 = Automate(alpha3, init3, etats3, final3, transitions3)
+
+    alpha4 = "ab"
+    etats4 = [0, 1, 2]
+    transitions4 = [
+        (0, 'b', 1), (0, 'a', 0),  (1, 'b', 2), (1, 'a', 1),
+        (2, 'a', 2), (2, 'b', 0)
+    ]
+
+    init4 = [0]
+    final4 = [0]
+    A4 = Automate(alpha4, init4, etats4, final4, transitions4)
+
+    # A = union(A3, A4)
+    # print("L'union : ")
+    # print(A)
+    # time.sleep(2)
+    # print('\n\nL\'intersection')
+    # print(intersection(A3, A4))
+
+    A = construction_thompson('a*b')
+    B = determiniser(A)
+    print(B)
+    print(f'Reconnaissance de aab : {A.reconnait("b")}')
+    # print(f'Reconnaissance de aaba : {A.reconnait("aaba")}')
+    # print(f'Reconnaissance de b : {A.reconnait("b")}')
+    # print(
+    #     f"l'expression régulière de l'automate :  {automate_vers_expression(A)}")

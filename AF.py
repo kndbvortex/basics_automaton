@@ -1,4 +1,5 @@
 import copy
+import time
 
 
 mot_vide = "ε"
@@ -99,10 +100,12 @@ class Automate():
 
     # Ajouter une transition dans l'automate
     def add_transition(self, origine, etiquette, destination):
-        if origine in self.etats and destination in self.etats and etiquette in self.alphabet.union(mot_vide):
-            self[origine].add_transition(etiquette, destination)
-            if etiquette == mot_vide:
-                self.spontanee = True
+        if origine in self.etats:
+            if destination in self.etats:
+                if etiquette in self.alphabet.union(mot_vide):
+                    self[origine].add_transition(etiquette, destination)
+                    if etiquette == mot_vide:
+                        self.spontanee = True
 
     def get_transitions(self):
         transitions = []
@@ -120,22 +123,35 @@ class Automate():
 
     # vérifie qu'un mot appartient à un langage
     def reconnait(self, mot) -> bool:
-        q = self.etats_init[0]
-        i = 0
-        n = len(mot)
-        while i < n:
-            q = self.etats[q][mot[i]]
-            i += 1
-            if q == [] or q == None:
-                return False
-        for etat in self.etats_final:
-            if etat == q:
-                return True
-        return False
+        l = [i for i in self.etats_init]
+        for i in range(len(mot)):
+            a = list(l)
+            l.clear()
+            for etat in a:
+                epsi = self.epsilon_fermeture(etat)
+                for e in epsi:
+                    l.append(e)
+                dest = self[etat][mot[i]]
+                if dest != None:
+                    if type(dest) == type([]):
+                        for e in dest:
+                            l.append(e)
+                    else:
+                        l.append(dest)
+        if len(mot) == 0:
+            for e in self.etats_init:
+                a = self.epsilon_fermeture(e)
+                for t in a:
+                    l.append(t)
+        if set(l).intersection(self.etats_final) != set():
+            return True
+        else:
+            return False
 
     # vérifie si un automate est déterministe suivant le principe suivant
     # s'il contient plus d'un etat initial est est ND
     # si parmi les états de l'automate, il y'a un état pour lequel pour un symbole de l'alphabet, on se retrouve sur plus d'un état
+
     def est_deterministe(self) -> bool:
         if len(self.etats_init) != 1 or self.spontanee:
             return False
@@ -178,3 +194,16 @@ class Automate():
     # surcharge de l'opérateur d'indexage afin de pouvoir obtenir l'etat de nom 'key'
     def __getitem__(self, key):
         return self.etats[key]
+
+
+if __name__ == '__main__':
+    alphabet = 'ab'
+    etats = [0, 1, 2, 3]
+    init = [1]
+    final = [0]
+    transitions = [
+        (1, 'a', 0), (1, 'a', 3), (2, 'b', 0), (2, 'b', 3),
+        (3, 'a', 0), (3, 'b', 0), (0, 'a', 1), (0, 'a', 2),
+    ]
+    A = Automate(alphabet, init, etats, final, transitions)
+    print(A.reconnait('aabab'))
